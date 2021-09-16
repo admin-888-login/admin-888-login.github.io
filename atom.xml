@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2021-09-16T16:21:24.360Z</updated>
+  <updated>2021-09-16T16:32:09.171Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>breach1靶场渗透</title>
+    <link href="http://example.com/2021/09/17/breach1%E9%9D%B6%E5%9C%BA%E6%B8%97%E9%80%8F/"/>
+    <id>http://example.com/2021/09/17/breach1%E9%9D%B6%E5%9C%BA%E6%B8%97%E9%80%8F/</id>
+    <published>2021-09-16T16:25:49.000Z</published>
+    <updated>2021-09-16T16:32:09.171Z</updated>
+    
+    <content type="html"><![CDATA[<h4 id="靶场搭建"><a class="markdownIt-Anchor" href="#靶场搭建"></a> 靶场搭建</h4><p>下载好breach1.0镜像文件后，创建虚拟机，注意要将虚拟机网段设置成仅主机模式。网段设置为192.168.110.0，虚拟机会默认将ip设置为192.168.110.140。</p><h4 id="测试"><a class="markdownIt-Anchor" href="#测试"></a> 测试：</h4><p>因为IP已知，首先对靶场进行端口扫描，借助nmap:</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nmap -p 1-65535 192.168.110.140</span><br></pre></td></tr></table></figure><p>扫描后看到结果，所有的端口都是打开状态，因此判断可能是采用了ips，或者waf防护<a href="https://imgtu.com/i/4uCzCD"><img src="https://z3.ax1x.com/2021/09/16/4uCzCD.png" alt="4uCzCD.png" /></a></p><p>尝试在浏览器中访问靶机IP，看到一些没啥用的信息（讲故事）</p><p><a href="https://imgtu.com/i/4uPYPU"><img src="https://z3.ax1x.com/2021/09/16/4uPYPU.png" alt="4uPYPU.png" /></a></p><p>尝试看看源码？也就这样了。看到一段加密过的值</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;!------Y0dkcFltSnZibk02WkdGdGJtbDBabVZsYkNSbmIyOWtkRzlpWldGbllXNW5KSFJo -----&gt;</span><br></pre></td></tr></table></figure><p><a href="https://imgtu.com/i/4uPWMd"><img src="https://z3.ax1x.com/2021/09/16/4uPWMd.png" alt="4uPWMd.png" /></a></p><p>这段值是64位，根据常见的加密算法的特征，猜测是base64加密。 （md5:32位，sha1：40位）尝试用自动解码工具解码看看，果然是base64，但还是看不懂，难道加了盐？再试一次，能看懂了。</p><p><a href="https://imgtu.com/i/4uihpF"><img src="https://z3.ax1x.com/2021/09/16/4uihpF.png" alt="4uihpF.png" /></a></p><p><a href="https://imgtu.com/i/4uiqk6"><img src="https://z3.ax1x.com/2021/09/16/4uiqk6.png" alt="4uiqk6.png" /></a></p><p>解码出现：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pgibbons:damnitfeel$goodtobeagang$ta</span><br></pre></td></tr></table></figure><p>猜测是某个用户账号密码</p><p>回到原来的初始页面，点击图片，进入一个类似导航的页面：</p><p><a href="https://imgtu.com/i/4uZLtI"><img src="https://z3.ax1x.com/2021/09/16/4uZLtI.png" alt="4uZLtI.png" /></a></p><p>依次点点看 ，再最后一个链接，进入了一个后台直接看到是什么cms ，后面可以查询看看这个impress cms 有没有什么漏洞</p><p><a href="https://imgtu.com/i/4ue141"><img src="https://z3.ax1x.com/2021/09/16/4ue141.png" alt="4ue141.png" /></a></p><p>用之前的密码试试看？果然进入：</p><p><a href="https://imgtu.com/i/4ueo80"><img src="https://z3.ax1x.com/2021/09/16/4ueo80.png" alt="4ueo80.png" /></a></p><p>先看看cms是不是有什么漏洞。msf打开：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">searchsploit  impresscms</span><br></pre></td></tr></table></figure><p>有是有就是不知道这里具体的版本：</p><p><a href="https://imgtu.com/i/4umIdH"><img src="https://z3.ax1x.com/2021/09/16/4umIdH.png" alt="4umIdH.png" /></a></p><p>依次尝试，并不行。。。</p><p>继续看看页面上有啥，这里有三个未读邮件，进去看看</p><p><a href="https://imgtu.com/i/4unAyT"><img src="https://z3.ax1x.com/2021/09/16/4unAyT.png" alt="4unAyT.png" /></a></p><p>第三封邮件有信息，在 192.168.110.140/.keystore 位置保存了文件</p><p><a href="https://imgtu.com/i/4unY0e"><img src="https://z3.ax1x.com/2021/09/16/4unY0e.png" alt="4unY0e.png" /></a></p><p>keystore是keytool（jdk里自带）生成的密钥、证书存储的地方，这里有什么关键的信息？可以用keytool提取java里的密钥、证书。不管别的，先下载这个keystore。但是没有密钥口令也没法解开。</p><p>继续寻找密钥，点点点，在View Account内有个一content链接打开看看？</p><p><a href="https://imgtu.com/i/4uu7xP"><img src="https://z3.ax1x.com/2021/09/16/4uu7xP.png" alt="4uu7xP.png" /></a></p><p><a href="https://imgtu.com/i/4uuzPs"><img src="https://z3.ax1x.com/2021/09/16/4uuzPs.png" alt="4uuzPs.png" /></a></p><p>看看提示，有个文件： <a href="http://192.168.110.140/impresscms/_SSL_test_phase1.pcap%E3%80%82pcap%E6%96%87%E4%BB%B6%EF%BC%9F%E4%BB%80%E4%B9%88%E7%8E%A9%E6%84%8F%EF%BC%9F%E6%90%9C%E6%90%9C%E7%9C%8B%EF%BC%8C%E5%8E%9F%E6%9D%A5%E6%98%AFwireshark%E7%9A%84%E6%B5%81%E9%87%8F%E5%8C%85%EF%BC%8C%E4%B8%8B%E4%BA%86%E5%86%8D%E8%AF%B4%E3%80%82%E7%BB%A7%E7%BB%AD%E7%9C%8B%EF%BC%8C%E7%94%9F%E6%88%90keystore%E9%9C%80%E8%A6%81%E7%9A%84%E5%88%AB%E5%90%8D%EF%BC%8C%E5%AF%86%E9%92%A5%E9%83%BD%E6%98%AF%E2%80%9Ctomcat%E2%80%9D%E3%80%82%E5%9C%A8%E4%B8%8B%E8%BD%BDkeystore%E7%9A%84%E7%9B%AE%E5%BD%95%E4%B8%8B%EF%BC%8C%E4%BD%BF%E7%94%A8keytool%E7%94%9F%E6%88%90%E8%AF%81%E4%B9%A6%EF%BC%9A">http://192.168.110.140/impresscms/_SSL_test_phase1.pcap。pcap文件？什么玩意？搜搜看，原来是wireshark的流量包，下了再说。继续看，生成keystore需要的别名，密钥都是“tomcat”。在下载keystore的目录下，使用keytool生成证书：</a></p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">keytool -importkeystore -srckeystore E:\Download\keystore -destkeystore E:\Download\\tomcat.p12 -deststoretype PKCS12 -srcalias tomcat</span><br></pre></td></tr></table></figure><p>密钥库口令就是tomcat。可以看到tomcat.p12证书生成。</p><p>打开SSL_test_phase1.pcap文件，https协议，用了TSL加密，因此导入刚刚生成的证书来解密。</p><p>编辑–&gt;首选项–&gt;Protocols–&gt;TLS–&gt;edit</p><p><a href="https://imgtu.com/i/4ulPMt"><img src="https://z3.ax1x.com/2021/09/17/4ulPMt.png" alt="4ulPMt.png" /></a></p><p>回到wireshark主页面，过滤一下信息：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ip.src == 192.168.110.140 || ip.dst == 192.168.110.140 and http</span><br></pre></td></tr></table></figure><p><a href="https://imgtu.com/i/4ulGoF"><img src="https://z3.ax1x.com/2021/09/17/4ulGoF.png" alt="4ulGoF.png" /></a></p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h4 id=&quot;靶场搭建&quot;&gt;&lt;a class=&quot;markdownIt-Anchor&quot; href=&quot;#靶场搭建&quot;&gt;&lt;/a&gt; 靶场搭建&lt;/h4&gt;
+&lt;p&gt;下载好breach1.0镜像文件后，创建虚拟机，注意要将虚拟机网段设置成仅主机模式。网段设置为192.168.110.0，虚拟机会默</summary>
+      
+    
+    
+    
+    
+    <category term="breach1.0 渗透测试" scheme="http://example.com/tags/breach1-0-%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/"/>
+    
+  </entry>
   
   <entry>
     <title>myfirstblog</title>
